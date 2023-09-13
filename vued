@@ -1,6 +1,7 @@
 #!/bin/bash
 
 PROJECT_DIR=app/
+
 CONTAINER_NAME="app-vue"
 
 RED=$'\e[0;31m'
@@ -43,6 +44,13 @@ function is_container_running {
             return 0
         fi
     fi
+}
+
+# Função para executar o comando "make" correspondente
+run_make_command() {
+  is_container_running
+  cmd="./node_modules/.bin/vuesan $@"
+  docker compose exec "$CONTAINER_NAME" bash -c "$cmd"
 }
 
 # Verificar se o número de argumentos é pelo menos 1
@@ -100,6 +108,9 @@ case $1 in
         else
             docker compose exec "$CONTAINER_NAME" bash
         fi
+        ;;
+    "make:"* )
+        run_make_command "$@"
         ;;
     * )
         show_help
