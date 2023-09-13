@@ -1,0 +1,177 @@
+#!/usr/bin/env node
+
+const fs = require('fs');
+const path = require('path');
+const readline = require('readline');
+
+const format = {
+  reset: "\x1b[0m",
+  green: "\x1b[32m",
+  blue: "\x1b[34m",
+  yellow: "\x1b[33m",
+  red: "\x1b[31m",
+  espacador: function (quantidade = 1) {
+    return " ".repeat(quantidade);
+  }
+};
+
+class Vuesan {
+  constructor() {
+    this.workdir = path.join(__dirname, '..', '..', 'src')
+
+    this.input = process.argv.slice(2);
+    this.functionCmd = this.input[0].split(':')[0];
+    this.callCmd = this.input[0].split(':')[1];
+    this.params = this.input.slice(1);
+
+    //console.log(this.input, this.params, this.functionCmd, this.functionCmdSection)
+
+    // Chama a função correspondente a this.cmd
+    if (typeof this[this.functionCmd] === 'function') {
+      this[this.functionCmd](this.callCmd);
+    } else {
+      console.error(`${format.red}Comando desconhecido! Ex de uso: ./vued make:component <NomeDoComponente>${format.reset}`)
+    }
+
+    return;
+
+    this.componentName = this.args[1];
+    this.pathOption = this.args.find(arg => arg.startsWith('--path='));
+    this.defaultComponentPath = 'components';
+
+    this.componentPath = this.getComponentPath();
+    this.componentDir = path.join(__dirname, '..', '..', 'src', this.componentPath);
+    this.componentFile = path.join(this.componentDir, this.formatComponentName(this.componentName) + '.vue');
+  }
+
+  make(name) {
+    switch (name) {
+      case 'help':
+        console.info(`
+Uso: make:[comando] [argumentos]
+
+Comandos disponíveis:
+  ${format.green}component${format.reset} <NomeComponente> ${format.espacador(25)} Cria um novo componente 
+  ${format.espacador(60)}${format.yellow}--path=/path/NomeComponente${format.reset}
+  ${format.green}store${format.reset} <NomeStore> ${format.espacador(34)} Cria uma estrutura store Vuex
+  ${format.espacador(60)}${format.yellow}--path=/path/NomeStore${format.reset}
+  ${format.green}route${format.reset} <Route> ${format.espacador(38)} Cria uma estrutura de rotas VueRouter
+  ${format.espacador(60)}${format.yellow}--path=/path/Route${format.reset}
+  `);
+        break;
+
+      case 'component':
+        return this.makeComponent();
+        break
+
+      default:
+        console.error(`${format.red}Comando ${format.reset}make:${name} ${format.red}não existe! Utilize: ${format.yellow}./vued make:component <NomeDoComponente> <argumentos>${format.reset}`)
+        break;
+    }
+  }
+
+  async overwriteFilePrompt() {
+    return new Promise((resolve) => {
+      const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+
+      rl.question('Deseja substituir o arquivo existente sim ou não (y/n)? ', (answer) => {
+        const normalizedAnswer = answer.toLowerCase();
+        const isYes = normalizedAnswer === 'y' || normalizedAnswer === 'sim' || normalizedAnswer === '';
+
+        rl.close();
+        resolve(isYes);
+      });
+    });
+  }
+
+  async makeComponent() {
+    this.workdir = path.join(this.workdir, 'components');
+
+    // Cria a pasta de componentes
+    if (!fs.existsSync(this.workdir)) {
+      fs.mkdirSync(this.workdir, {
+        recursive: !false
+      })
+    }
+
+    let custom_path = this.params.findIndex(arg => arg.startsWith("--path"));
+    let component_file;
+
+    if (custom_path !== -1) {
+      custom_path = this.params[custom_path].trim().slice(7)
+      component_file = path.join(this.workdir, custom_path)
+    } else {
+      component_file = path.join(this.workdir, this.params[0]);
+    }
+
+    if (path.extname(component_file)) {
+      component_file = component_file.split(path.extname(component_file))[0];
+    }
+
+    component_file += ".vue"
+
+    // Arquivo ja existe
+    if (fs.existsSync(component_file)) {
+      if (!await this.overwriteFilePrompt()) return;
+      // Continue
+    }
+
+    //console.log("Criado", component_file, fs.existsSync(component_file))
+
+    try {
+      if (!fs.existsSync(path.parse(component_file).dir)) {
+        fs.mkdirSync(path.parse(component_file).dir, {
+          recursive: !false
+        });
+      }
+      fs.writeFileSync(component_file, this.componentTemplate(path.parse(component_file).name));
+      console.info(`${format.green}Componente criado com sucesso:${format.reset} ${component_file}`)
+    } catch (error) {
+      console.error(`${format.red}Erro ao criar componente:`, error, format.reset);
+      process.exit(1);
+    }
+  }
+
+  componentTemplate(name) {
+    return `<script>
+  export default {
+    name: '${name}',
+    data() {
+      return {
+        greeting: 'Olá Mundo!'
+      }
+    }
+  }
+</script>
+  
+<template>
+  <p class="greeting">{{ greeting }}</p>
+</template>
+  
+<style>
+  .greeting {
+    color: red;
+    font-weight: bold;
+  }
+</style>`;
+  }
+
+
+  getComponentPath() {
+    return this.pathOption ? this.pathOption.slice(7) : this.defaultComponentPath;
+  }
+
+  run() {
+    // // Verifica se o nome do componente foi especificado
+    // if (!this.componentName) {
+    //   console.error(`${format.red}Nome do componente não especificado. Use: ${format.yellow}./vued make:component ${format.red}<nome>${format.yellow} [--path=/path/nome]${format.reset}`);
+    //   process.exit(1);
+    // }
+
+    // // Chama a função para criar o componente
+    // this.createComponent();
+  }
+}
+
+const generator = new Vuesan();
+generator.run();
