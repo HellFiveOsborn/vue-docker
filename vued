@@ -1,6 +1,7 @@
 #!/bin/bash
 
 PROJECT_DIR=app/
+
 CONTAINER_NAME="app-vue"
 
 RED=$'\e[0;31m'
