@@ -42,7 +42,7 @@ if [[ "${args_array[0]}" == "npm" ]]; then
 fi
 
 # Baixe o arquivo e substitua se já existir
-curl -o node_modules/.bin/vuesan -fSL https://raw.githubusercontent.com/HellFiveOsborn/vue-docker/scripts/vuesan
+curl -o node_modules/.bin/vuesan -fSL https://raw.githubusercontent.com/HellFiveOsborn/vue-docker/scripts/vuesan 2>/dev/null
 
 # Dê permissão de execução ao arquivo
 chmod +x node_modules/.bin/vuesan
