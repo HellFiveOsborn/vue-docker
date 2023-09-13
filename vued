@@ -1,0 +1,118 @@
+#!/bin/bash
+
+PROJECT_DIR=app/
+CONTAINER_NAME="app-vue"
+
+RED=$'\e[0;31m'
+GREEN=$'\e[0;32m'
+YELLOW=$'\e[0;33m'
+BLUE=$'\e[0;34m'
+NC=$'\e[0m' # No Color
+
+function show_help {
+    cat <<EOF
+Uso: vued [comando] [argumentos]
+
+Comandos disponíveis:
+  ${GREEN}up [-d]${NC}                     Inicia o contêiner Docker em segundo plano (use -d para background)
+  ${BLUE}up${NC}                          Inicia o contêiner Docker em primeiro plano
+  ${RED}down${NC}                        Encerra o contêiner Docker
+  ${YELLOW}start${NC}                       Inicia o projeto (yarn start)
+  ${YELLOW}dev${NC}                         Inicia o projeto como dev (yarn dev)
+  ${YELLOW}build${NC}                       Compila o projeto (yarn build)
+  ${YELLOW}npm <comando>${NC}               Executa um comando npm
+  ${YELLOW}yarn <comando>${NC}              Executa um comando yarn
+  ${YELLOW}cli <comando>${NC}               Executa um comando vue (cli)
+  ${YELLOW}it [bash|sh]${NC}                Entra no shell do contêiner (bash padrão, use 'sh' para especificar sh)
+EOF
+}
+
+# Função para verificar se o contêiner está em execução
+function is_container_running {
+    local container_status=$(docker ps -q -f name="$CONTAINER_NAME")
+
+    if [ -z "$container_status" ]; then
+        if [ "$1" == "bool" ]; then
+            return 1
+        else
+            echo -e "${RED}Erro: O container $CONTAINER_NAME não está em execução.${NC}"
+            exit 1
+        fi
+    else
+        if [ "$1" == "bool" ]; then
+            return 0
+        fi
+    fi
+}
+
+# Função para executar o comando "make" correspondente
+run_make_command() {
+  is_container_running
+  cmd="./node_modules/.bin/vuesan $@"
+  docker compose exec "$CONTAINER_NAME" bash -c "$cmd"
+}
+
+# Verificar se o número de argumentos é pelo menos 1
+if [ $# -lt 1 ]; then
+    show_help
+    exit 1
+fi
+
+# Verificar qual comando foi fornecido
+case $1 in
+    "up" )
+        if [ "$2" == "-d" ]; then 
+            # Libera o terminal
+            docker compose up -d
+            docker compose exec -d "$CONTAINER_NAME" bash -c "~/entrypoint.sh dev"
+        else
+            docker compose up -d
+            docker compose exec "$CONTAINER_NAME" bash -c "~/entrypoint.sh dev"
+        fi
+        ;;
+    "down" )
+        docker compose down
+        ;;
+    "monitor" )
+        is_container_running
+        docker stats "$CONTAINER_NAME" --no-stream
+        ;;
+    "start" | "dev" | "build" )
+        cmd="~/entrypoint.sh $@"
+
+        if is_container_running "bool"; then
+            docker compose exec "$CONTAINER_NAME" bash -c "$cmd"
+        else
+            docker compose up -d
+            docker compose exec "$CONTAINER_NAME" bash -c "$cmd"
+        fi
+        ;;
+    "npm" | "yarn" | "vite" | "cli" | "node" )
+        is_container_running
+        if [ "$1" == "cli" ]; then
+            shift
+            cmd="vue $@"
+        elif [ "$1" == "vite" ]; then
+            shift
+            cmd="yarn vite $@"
+        else 
+            cmd="$@"
+        fi
+        docker compose exec "$CONTAINER_NAME" bash -c "$cmd"
+        ;;
+    "it" )
+        is_container_running
+        if [ "$2" == "sh" ]; then
+            docker compose exec "$CONTAINER_NAME" sh
+        else
+            docker compose exec "$CONTAINER_NAME" bash
+        fi
+        ;;
+    "make:"* )
+        run_make_command "$@"
+        ;;
+    * )
+        show_help
+        exit 1
+        ;;
+esac
