@@ -1,6 +1,6 @@
-<picture>
-  <img style="display:block;margin-inline:auto;" alt="VUEDOCKER" width="460" src="vuedocker.png">
-</picture>
+<p align="center">
+  <img alt="VUEDOCKER" width="460" src="vuedocker.png">
+</p>
 
 # <a href="https://vuejs.org" target="_blank" rel="noopener noreferrer"><img width="25" src="https://vuejs.org/images/logo.png" alt="Vue logo"></a>ue.js Dockerized Project
 
