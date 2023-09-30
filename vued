@@ -50,7 +50,7 @@ function is_container_running {
 run_make_command() {
   is_container_running
   cmd="./node_modules/.bin/vuesan $@"
-  docker compose exec "$CONTAINER_NAME" bash -c "$cmd"
+  docker exec "$CONTAINER_NAME" bash -c "$cmd"
 }
 
 # Verificar se o número de argumentos é pelo menos 1
@@ -65,10 +65,10 @@ case $1 in
         if [ "$2" == "-d" ]; then 
             # Libera o terminal
             docker compose up -d
-            docker compose exec -d "$CONTAINER_NAME" bash -c "~/entrypoint.sh dev"
+            docker exec -d "$CONTAINER_NAME" bash -c "~/entrypoint.sh dev"
         else
             docker compose up -d
-            docker compose exec "$CONTAINER_NAME" bash -c "~/entrypoint.sh dev"
+            docker exec "$CONTAINER_NAME" bash -c "~/entrypoint.sh dev"
         fi
         ;;
     "down" )
@@ -82,10 +82,10 @@ case $1 in
         cmd="~/entrypoint.sh $@"
 
         if is_container_running "bool"; then
-            docker compose exec "$CONTAINER_NAME" bash -c "$cmd"
+            docker exec "$CONTAINER_NAME" bash -c "$cmd"
         else
             docker compose up -d
-            docker compose exec "$CONTAINER_NAME" bash -c "$cmd"
+            docker exec "$CONTAINER_NAME" bash -c "$cmd"
         fi
         ;;
     "npm" | "yarn" | "vite" | "cli" | "node" )
@@ -99,14 +99,14 @@ case $1 in
         else 
             cmd="$@"
         fi
-        docker compose exec "$CONTAINER_NAME" bash -c "$cmd"
+        docker exec "$CONTAINER_NAME" bash -c "$cmd"
         ;;
     "it" )
         is_container_running
         if [ "$2" == "sh" ]; then
-            docker compose exec "$CONTAINER_NAME" sh
+            docker exec -it "$CONTAINER_NAME" sh
         else
-            docker compose exec "$CONTAINER_NAME" bash
+            docker exec -it "$CONTAINER_NAME" bash
         fi
         ;;
     "make:"* )
